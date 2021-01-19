@@ -511,10 +511,6 @@ ROOT_START=135168
 
 .PHONY: format-icicle-image
 format-icicle-image: $(fit) $(uboot_s_scr) $(icicle_image_mnt_point)
-	@test -b $(DISK) || (echo "$(DISK): is not a block device"; exit 1)
-	$(eval DEVICE_NAME := $(shell basename $(DISK)))
-	$(eval SD_SIZE := $(shell cat /sys/block/$(DEVICE_NAME)/size))
-	$(eval ROOT_SIZE := $(shell expr $(SD_SIZE) \- $(RESERVED_SIZE)))
 	/sbin/sgdisk -Zo  \
     --new=1:$(UBOOT_START):$(UBOOT_END) --change-name=1:uboot --typecode=1:$(HSS_PAYLOAD) \
     --new=2:$(LINUX_START):$(LINUX_END) --change-name=2:kernel --typecode=2:$(LINUX) \
@@ -531,7 +527,6 @@ else ifeq ($(DISK)p1,$(wildcard $(DISK)p1))
 	@$(eval partition_prefix := p)
 else
 	@echo Error: Could not find bootloader partition for $(DISK)
-	@exit 1
 endif
 
 	dd if=$(hss_uboot_payload_bin) of=$(DISK)$(partition_prefix)1
@@ -540,10 +535,6 @@ endif
 # {lc-,}mpfs
 .PHONY: format-boot-loader
 format-boot-loader: $(fit) $(vfat_image) $(bootloaders-y)
-	@test -b $(DISK) || (echo "$(DISK): is not a block device"; exit 1)
-	$(eval DEVICE_NAME := $(shell basename $(DISK)))
-	$(eval SD_SIZE := $(shell cat /sys/block/$(DEVICE_NAME)/size))
-	$(eval ROOT_SIZE := $(shell expr $(SD_SIZE) \- $(RESERVED_SIZE)))
 	/sbin/sgdisk --clear  \
 		--new=1:$(VFAT_START):$(VFAT_END)  --change-name=1:"Vfat Boot"	--typecode=1:$(VFAT)   \
 		--new=2:264192:$(ROOT_SIZE) --change-name=2:root	--typecode=2:$(LINUX) \
@@ -567,9 +558,6 @@ else ifeq ($(DISK)1,$(wildcard $(DISK)1))
 	@$(eval PART2 := $(DISK)2)
 	@$(eval PART3 := $(DISK)3)
 	@$(eval PART4 := $(DISK)4)
-else
-	@echo Error: Could not find bootloader partition for $(DISK)
-	@exit 1
 endif
 
 	dd if=$(fsbl) of=$(PART4) bs=4096
